@@ -1,4 +1,4 @@
-package com.chrisx.ricochet;
+package com.chrisx.theia;
 
 /**
  * Organized in order of priority:
