@@ -32,12 +32,12 @@ public class MainActivity extends Activity {
     private LinearLayout ll;
     private float scaleFactor;
 
-    static Bitmap stars;
+    static Bitmap stars, mercury, venus, earth;
 
     private SharedPreferences sharedPref;
     private SharedPreferences.Editor editor;
 
-    private Typeface trench;
+    static Typeface trench;
 
     private boolean paused = false;
     private long frameCount = 0;
@@ -54,6 +54,8 @@ public class MainActivity extends Activity {
     private float downX, downY;
 
     private Paint title, start;
+
+    private HexagonButton[] levels;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +79,12 @@ public class MainActivity extends Activity {
         Resources res = getResources();
         stars = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.stars),
                 Math.round(h()*2*1706/960), Math.round(h()*2), false);
+        mercury = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.mercury_lowres),
+                Math.round(h()/4*184/160), Math.round(h()/4), false);
+        venus = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.venus_lowres),
+                Math.round(h()/4*184/160), Math.round(h()/4), false);
+        earth = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.earth_lowres),
+                Math.round(h()/4*184/160), Math.round(h()/4), false);
 
         //initializes SharedPreferences
         sharedPref = this.getPreferences(Context.MODE_PRIVATE);
@@ -96,6 +104,11 @@ public class MainActivity extends Activity {
 
         start = new Paint(title);
         start.setTextSize(c480(50));
+
+        levels = new HexagonButton[]{
+                new HexagonButton(mercury," 1",w()/4,h()*3/2),
+                new HexagonButton(venus,"2",w()/2,h()*3/2),
+                new HexagonButton(earth," 3",w()*3/4,h()*3/2)};
 
 
         final Handler handler = new Handler();
@@ -257,10 +270,10 @@ public class MainActivity extends Activity {
 
     private void drawTitleMenu() {
         canvas.drawBitmap(stars, w()/2-stars.getWidth()/2, 0, null);
-        canvas.drawText("THEIA", w()/2, h()/2-(title.ascent()+title.descent())/2, title);
+        canvas.drawText(" THEIA", w()/2, h()/2-(title.ascent()+title.descent())/2, title);
         int tmp = (int) (Math.abs(Math.sin(frameCount/90.*Math.PI))*255);
         start.setAlpha(tmp);
-        canvas.drawText("tap to start", w()/2, h()/2+c480(140), start);
+        canvas.drawText(" tap to start", w()/2, h()/2+c480(140), start);
     }
 
     private void drawLevels() {
@@ -269,7 +282,7 @@ public class MainActivity extends Activity {
 
         if (transition > 0) drawTitleMenu();
 
-
+        for (HexagonButton hb : levels) hb.draw();
 
         canvas.restore();
     }
