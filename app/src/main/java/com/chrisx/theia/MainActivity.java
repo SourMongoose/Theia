@@ -77,8 +77,13 @@ public class MainActivity extends Activity {
         ll.setBackgroundDrawable(new BitmapDrawable(bmp));
 
         Resources res = getResources();
-        theia = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.theia),
-                Math.round(h()*1200/1600),Math.round(h()),false);
+        Bitmap theia_tmp = BitmapFactory.decodeResource(res, R.drawable.theia);
+        if (h()/w() > 1.*theia_tmp.getHeight()/theia_tmp.getWidth()) //screen is thinner
+            theia = Bitmap.createScaledBitmap(theia_tmp,
+                    Math.round(h()*theia_tmp.getWidth()/theia_tmp.getHeight()),Math.round(h()),false);
+        else //screen is wider
+            theia = Bitmap.createScaledBitmap(theia_tmp,
+                    Math.round(w()),Math.round(w()*theia_tmp.getHeight()/theia_tmp.getWidth()),false);
 
         //initializes SharedPreferences
         sharedPref = this.getPreferences(Context.MODE_PRIVATE);
@@ -255,7 +260,10 @@ public class MainActivity extends Activity {
     }
 
     private void drawTitleMenu() {
-        canvas.drawBitmap(theia,w()/2-theia.getWidth()/2,0,null);
+        if (h()/w() > 1.*theia.getHeight()/theia.getWidth()) //thinner
+            canvas.drawBitmap(theia,w()/2-theia.getWidth()/2,0,null);
+        else //wider
+            canvas.drawBitmap(theia,0,h()/2-theia.getHeight()/2,null);
     }
 
     private void drawLevels() {
