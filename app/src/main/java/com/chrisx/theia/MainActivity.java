@@ -32,7 +32,7 @@ public class MainActivity extends Activity {
     private LinearLayout ll;
     private float scaleFactor;
 
-    static Bitmap stars, mercury, venus, earth;
+    static Bitmap theia;
 
     private SharedPreferences sharedPref;
     private SharedPreferences.Editor editor;
@@ -53,7 +53,7 @@ public class MainActivity extends Activity {
 
     private float downX, downY;
 
-    private Paint title, start;
+    private Paint title;
 
     private HexagonButton[] levels;
 
@@ -64,11 +64,11 @@ public class MainActivity extends Activity {
 
         //creates the bitmap
         //note: Star 4.5 is 480x854
-        int targetH = 480,
+        int targetW = 480,
                 wpx = getAppUsableScreenSize(this).x,
                 hpx = getAppUsableScreenSize(this).y;
-        scaleFactor = Math.min(1,(float)targetH/hpx);
-        bmp = Bitmap.createBitmap(Math.round(wpx*scaleFactor),Math.round(hpx*scaleFactor),Bitmap.Config.RGB_565);
+        scaleFactor = Math.min(1,(float)targetW/wpx);
+        bmp = Bitmap.createBitmap(Math.round(wpx*scaleFactor),Math.round(hpx*scaleFactor),Bitmap.Config.ARGB_8888);
 
         //creates canvas
         canvas = new Canvas(bmp);
@@ -77,14 +77,8 @@ public class MainActivity extends Activity {
         ll.setBackgroundDrawable(new BitmapDrawable(bmp));
 
         Resources res = getResources();
-        stars = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.stars),
-                Math.round(h()*2*1706/960), Math.round(h()*2), false);
-        mercury = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.mercury_lowres),
-                Math.round(h()/4*184/160), Math.round(h()/4), false);
-        venus = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.venus_lowres),
-                Math.round(h()/4*184/160), Math.round(h()/4), false);
-        earth = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.earth_lowres),
-                Math.round(h()/4*184/160), Math.round(h()/4), false);
+        theia = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.theia),
+                Math.round(h()*1200/1600),Math.round(h()),false);
 
         //initializes SharedPreferences
         sharedPref = this.getPreferences(Context.MODE_PRIVATE);
@@ -101,14 +95,6 @@ public class MainActivity extends Activity {
         title = newPaint(Color.WHITE);
         title.setTextAlign(Paint.Align.CENTER);
         title.setTextSize(c480(200));
-
-        start = new Paint(title);
-        start.setTextSize(c480(50));
-
-        levels = new HexagonButton[]{
-                new HexagonButton(mercury," 1",w()/4,h()*3/2),
-                new HexagonButton(venus,"2",w()/2,h()*3/2),
-                new HexagonButton(earth," 3",w()*3/4,h()*3/2)};
 
 
         final Handler handler = new Handler();
@@ -153,7 +139,7 @@ public class MainActivity extends Activity {
                         @Override
                         public void run() {
                             if (!paused) {
-                                if (transition < TRANSITION_MAX / 2 || menu.equals("levels")) {
+                                if (transition < TRANSITION_MAX / 2) {
                                     if (menu.equals("start")) {
                                         drawTitleMenu();
                                     } else if (menu.equals("levels")) {
@@ -162,7 +148,7 @@ public class MainActivity extends Activity {
                                 }
 
                                 //fading transition effect
-                                if (transition > 0 && !menu.equals("levels")) {
+                                if (transition > 0) {
                                     int t = TRANSITION_MAX / 2, alpha;
                                     if (transition > t) {
                                         alpha = 255 - 255 * (transition - t) / t;
@@ -248,10 +234,10 @@ public class MainActivity extends Activity {
     }
 
     static float c480(float f) {
-        return h() / (480 / f);
+        return w() / (480 / f);
     }
     static float c854(float f) {
-        return w() / (854 / f);
+        return h() / (854 / f);
     }
 
     private long getHighScore() {
@@ -269,21 +255,9 @@ public class MainActivity extends Activity {
     }
 
     private void drawTitleMenu() {
-        canvas.drawBitmap(stars, w()/2-stars.getWidth()/2, 0, null);
-        canvas.drawText(" THEIA", w()/2, h()/2-(title.ascent()+title.descent())/2, title);
-        int tmp = (int) (Math.abs(Math.sin(frameCount/90.*Math.PI))*255);
-        start.setAlpha(tmp);
-        canvas.drawText(" tap to start", w()/2, h()/2+c480(140), start);
+        canvas.drawBitmap(theia,w()/2-theia.getWidth()/2,0,null);
     }
 
     private void drawLevels() {
-        canvas.save();
-        canvas.translate(0, -h()*(float)(1-Math.pow(1f*transition/TRANSITION_MAX, 3)));
-
-        if (transition > 0) drawTitleMenu();
-
-        for (HexagonButton hb : levels) hb.draw();
-
-        canvas.restore();
     }
 }
