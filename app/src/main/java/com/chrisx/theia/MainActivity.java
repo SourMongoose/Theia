@@ -32,7 +32,8 @@ public class MainActivity extends Activity {
     private LinearLayout ll;
     private float scaleFactor;
 
-    static Bitmap theia;
+    static Bitmap theia, back, table;
+    static Bitmap[] icons_1;
 
     private SharedPreferences sharedPref;
     private SharedPreferences.Editor editor;
@@ -84,6 +85,18 @@ public class MainActivity extends Activity {
         else //screen is wider
             theia = Bitmap.createScaledBitmap(theia_tmp,
                     Math.round(w()),Math.round(w()*theia_tmp.getHeight()/theia_tmp.getWidth()),false);
+
+        back = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.back),
+                Math.round(c480(100)),Math.round(c480(100)),false);
+
+        Bitmap table_tmp = BitmapFactory.decodeResource(res, R.drawable.table);
+        table = Bitmap.createScaledBitmap(table_tmp,
+                Math.round(w()),Math.round(w()*table_tmp.getHeight()/table_tmp.getWidth()),false);
+
+        icons_1 = new Bitmap[9];
+        for (int i = 0; i < icons_1.length; i++)
+            icons_1[i] = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.icon_1_1+i),
+                    Math.round(w()/3),Math.round(w()/3),false);
 
         //initializes SharedPreferences
         sharedPref = this.getPreferences(Context.MODE_PRIVATE);
@@ -202,11 +215,27 @@ public class MainActivity extends Activity {
 
         if (menu.equals("start")) {
             if (action == MotionEvent.ACTION_DOWN) {
-                goToMenu("levels");
+                float left, top;
+                if (h()/w() > 1.*theia.getHeight()/theia.getWidth()) { //thinner
+                    left = w()/2 - theia.getWidth()/2;
+                    top = 0;
+                } else { //wider
+                    left = 0;
+                    top = h()/2 - theia.getHeight()/2;
+                }
+
+                //hitbox for play button
+                double play[] = {780./1200, 1340./1800, 950./1200, 1510./1800};
+                if (X > left+play[0]*theia.getWidth() && X < left+play[2]*theia.getWidth()
+                        && Y > top+play[1]*theia.getHeight() && Y < top+play[3]*theia.getHeight()) {
+                    goToMenu("levels");
+                }
             }
         } else if (menu.equals("levels")) {
             if (action == MotionEvent.ACTION_DOWN) {
-                goToMenu("start");
+                if (X < c480(100) && Y > h()-c480(100)) {
+                    goToMenu("start");
+                }
             }
         }
 
@@ -267,5 +296,13 @@ public class MainActivity extends Activity {
     }
 
     private void drawLevels() {
+        canvas.drawBitmap(back,0,h()-c480(100),null);
+
+        float top = h()/2 - table.getHeight()/2;
+        canvas.drawBitmap(table,0,top,null);
+
+        for (int i = 0; i < 9; i++) {
+            canvas.drawBitmap(icons_1[i],(i%3)*w()/3,h()/2-w()*2/3+(i/3)*w()/3,null);
+        }
     }
 }
