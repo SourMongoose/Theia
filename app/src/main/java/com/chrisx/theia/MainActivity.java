@@ -32,7 +32,7 @@ public class MainActivity extends Activity {
     private LinearLayout ll;
     private float scaleFactor;
 
-    static Bitmap theia, back, table;
+    static Bitmap theia, back, reset, table, on, off;
     static Bitmap[] icons_1;
 
     private SharedPreferences sharedPref;
@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
     private long frameCount = 0;
 
     private String menu = "start";
+    private int floor, icon;
 
     //frame data
     private static final int FRAMES_PER_SECOND = 60;
@@ -56,7 +57,8 @@ public class MainActivity extends Activity {
 
     private Paint title;
 
-    private HexagonButton[] levels;
+    private Puzzle puzzle;
+    private String[][] puzzles;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,10 +90,15 @@ public class MainActivity extends Activity {
 
         back = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.back),
                 Math.round(c480(100)),Math.round(c480(100)),false);
+        reset = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.reset),
+                Math.round(c480(100)),Math.round(c480(100)),false);
 
         Bitmap table_tmp = BitmapFactory.decodeResource(res, R.drawable.table);
         table = Bitmap.createScaledBitmap(table_tmp,
                 Math.round(w()),Math.round(w()*table_tmp.getHeight()/table_tmp.getWidth()),false);
+
+        on = BitmapFactory.decodeResource(res, R.drawable.on);
+        off = BitmapFactory.decodeResource(res, R.drawable.off);
 
         icons_1 = new Bitmap[9];
         for (int i = 0; i < icons_1.length; i++)
@@ -113,6 +120,45 @@ public class MainActivity extends Activity {
         title = newPaint(Color.WHITE);
         title.setTextAlign(Paint.Align.CENTER);
         title.setTextSize(c480(200));
+
+        puzzles = new String[][]{
+                {
+                        "0110100110010110",
+                        "1111100110011111",
+                        "1011001111001101",
+                        "1001011001101001",
+                        "1110010110100111",
+                        "0010100000010100",
+                        "1011100000011101",
+                        "1000110000110001",
+                        "1011010110101101",
+                        "011110111010100111111001010111011110"
+                },
+                {
+                        "1000101010101010101010001",
+                        "0111010001101011000101110",
+                        "0100111000001000001110010",
+                        "0010001010101010101000100",
+                        "0101011111011101111101010",
+                        "0001110110101010110111000",
+                        "1101110101011101010111011",
+                        "1010101110000000111010101",
+                        "0111010101101010000011011",
+                        "001100011110111111110011100001110011"
+                },
+                {
+                        "011011100011101100001101110001110110",
+                        "100011100100010000000010001001110001",
+                        "011110100001001100001100100001011110",
+                        "001100000010100101101001010000001100",
+                        "001000011010000011110000010110000100",
+                        "101101011110110011110011011110101101",
+                        "100110000001011001100110100000011001",
+                        "001100010100111101101111001010001100",
+                        "001100101101100001111111010010011110",
+                        "001100011110010010001100011110100001"
+                }
+        };
 
 
         final Handler handler = new Handler();
@@ -162,6 +208,8 @@ public class MainActivity extends Activity {
                                         drawTitleMenu();
                                     } else if (menu.equals("levels")) {
                                         drawLevels();
+                                    } else if (menu.equals("puzzle")) {
+                                        drawPuzzle();
                                     }
                                 }
 
@@ -233,8 +281,38 @@ public class MainActivity extends Activity {
             }
         } else if (menu.equals("levels")) {
             if (action == MotionEvent.ACTION_DOWN) {
-                if (X < c480(100) && Y > h()-c480(100)) {
-                    goToMenu("start");
+                for (int i = 0; i < 9; i++) {
+                    float top = h()/2-w()*2/3+(i/3)*w()/3,
+                            left = (i%3)*w()/3;
+                    float bottom = top+w()/3,
+                            right = left+w()/3;
+
+                    if (X > left && X < right && Y > top && Y < bottom) {
+                        icon = i;
+                        goToMenu("puzzle");
+                    }
+                }
+            }
+        } else if (menu.equals("puzzle")) {
+            if (action == MotionEvent.ACTION_DOWN) {
+                //back button
+                if (X < c480(100) && Y < c480(100)) {
+                    goToMenu("levels");
+                }
+
+                //reset button
+                if (X > w()-c480(100) && Y < c480(100)) {
+                    puzzle.reset();
+                }
+
+                RectF rf = puzzle.getRectF();
+                float w = (rf.right - rf.left) / puzzle.getW();
+                for (int i = 0; i < puzzle.getW(); i++) {
+                    for (int j = 0; j < puzzle.getW(); j++) {
+                        if (X > rf.left+j*w && X < rf.left+(j+1)*w
+                                && Y > rf.top+i*w && Y < rf.top+(i+1)*w)
+                            puzzle.flip(i,j);
+                    }
                 }
             }
         }
@@ -274,8 +352,8 @@ public class MainActivity extends Activity {
         return h() / (854 / f);
     }
 
-    private long getHighScore() {
-        return sharedPref.getInt("high_score", 0);
+    private boolean completed(int floor, int icon) {
+        return sharedPref.getBoolean("completed_"+floor+"_"+icon, false);
     }
 
     private double toRad(double deg) {
@@ -284,6 +362,20 @@ public class MainActivity extends Activity {
 
     private void goToMenu(String s) {
         transition = TRANSITION_MAX;
+
+        if (s.equals("levels")) {
+            floor = 0;
+            outer: for (int i = 1; i <= 3; i++) {
+                for (int j = 1; j <= 9; j++) {
+                    if (!completed(i, j)) {
+                        floor = i;
+                        break outer;
+                    }
+                }
+            }
+        } else if (s.equals("puzzle")) {
+            puzzle = new Puzzle(puzzles[floor-1][icon],0,h()-w(),w(),h());
+        }
 
         menu = s;
     }
@@ -296,13 +388,22 @@ public class MainActivity extends Activity {
     }
 
     private void drawLevels() {
-        canvas.drawBitmap(back,0,h()-c480(100),null);
+        if (floor == 1) {
+            float top = h()/2 - table.getHeight()/2;
+            canvas.drawBitmap(table,0,top,null);
 
-        float top = h()/2 - table.getHeight()/2;
-        canvas.drawBitmap(table,0,top,null);
-
-        for (int i = 0; i < 9; i++) {
-            canvas.drawBitmap(icons_1[i],(i%3)*w()/3,h()/2-w()*2/3+(i/3)*w()/3,null);
+            for (int i = 0; i < 9; i++) {
+                canvas.drawBitmap(icons_1[i],(i%3)*w()/3,h()/2-w()*2/3+(i/3)*w()/3,null);
+            }
         }
+    }
+
+    private void drawPuzzle() {
+        //back button
+        canvas.drawBitmap(back,0,0,null);
+        //reset button
+        canvas.drawBitmap(reset,w()-c480(100),0,null);
+
+        puzzle.drawGrid();
     }
 }
