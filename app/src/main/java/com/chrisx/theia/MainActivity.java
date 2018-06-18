@@ -32,8 +32,8 @@ public class MainActivity extends Activity {
     private LinearLayout ll;
     private float scaleFactor;
 
-    static Bitmap theia, back, reset, table, on, off;
-    static Bitmap[] icons_1;
+    static Bitmap theia, back, reset, table, on, off, check;
+    static Bitmap[] icons_1, title_frames;
 
     private SharedPreferences sharedPref;
     private SharedPreferences.Editor editor;
@@ -45,6 +45,7 @@ public class MainActivity extends Activity {
 
     private String menu = "start";
     private int floor, icon;
+    private int startAnimation = -1;
 
     //frame data
     private static final int FRAMES_PER_SECOND = 60;
@@ -100,10 +101,18 @@ public class MainActivity extends Activity {
         on = BitmapFactory.decodeResource(res, R.drawable.on);
         off = BitmapFactory.decodeResource(res, R.drawable.off);
 
+        check = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.check),
+                Math.round(w()/3),Math.round(w()/3),false);
+
         icons_1 = new Bitmap[9];
         for (int i = 0; i < icons_1.length; i++)
             icons_1[i] = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.icon_1_1+i),
                     Math.round(w()/3),Math.round(w()/3),false);
+
+        title_frames = new Bitmap[22];
+        for (int i = 0; i < title_frames.length; i++)
+            title_frames[i] = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.title_frame_01+i),
+                    theia.getWidth(),theia.getHeight(),false);
 
         //initializes SharedPreferences
         sharedPref = this.getPreferences(Context.MODE_PRIVATE);
@@ -123,6 +132,7 @@ public class MainActivity extends Activity {
 
         puzzles = new String[][]{
                 {
+                        "011110111010100111111001010111011110",
                         "0110100110010110",
                         "1111100110011111",
                         "1011001111001101",
@@ -131,10 +141,10 @@ public class MainActivity extends Activity {
                         "0010100000010100",
                         "1011100000011101",
                         "1000110000110001",
-                        "1011010110101101",
-                        "011110111010100111111001010111011110"
+                        "1011010110101101"
                 },
                 {
+                        "001100011110111111110011100001110011",
                         "1000101010101010101010001",
                         "0111010001101011000101110",
                         "0100111000001000001110010",
@@ -143,8 +153,7 @@ public class MainActivity extends Activity {
                         "0001110110101010110111000",
                         "1101110101011101010111011",
                         "1010101110000000111010101",
-                        "0111010101101010000011011",
-                        "001100011110111111110011100001110011"
+                        "0111010101101010000011011"
                 },
                 {
                         "011011100011101100001101110001110110",
@@ -175,6 +184,12 @@ public class MainActivity extends Activity {
                         @Override
                         public void run() {
                             if (!paused) {
+                                if (transition < TRANSITION_MAX / 2) {
+                                    if (menu.equals("puzzle")) {
+                                        checkPuzzle();
+                                    }
+                                }
+
                                 //fading transition effect
                                 if (transition > 0) {
                                     transition--;
@@ -273,10 +288,13 @@ public class MainActivity extends Activity {
                 }
 
                 //hitbox for play button
-                double play[] = {780./1200, 1340./1800, 950./1200, 1510./1800};
-                if (X > left+play[0]*theia.getWidth() && X < left+play[2]*theia.getWidth()
-                        && Y > top+play[1]*theia.getHeight() && Y < top+play[3]*theia.getHeight()) {
-                    goToMenu("levels");
+                if (startAnimation < 0) {
+                    double play[] = {780./1200, 1340./1800, 950./1200, 1510./1800};
+                    if (X > left+play[0]*theia.getWidth() && X < left+play[2]*theia.getWidth()
+                            && Y > top+play[1]*theia.getHeight() && Y < top+play[3]*theia.getHeight()) {
+                        startAnimation = 0;
+                        frameCount = 0;
+                    }
                 }
             }
         } else if (menu.equals("levels")) {
@@ -288,10 +306,12 @@ public class MainActivity extends Activity {
                             right = left+w()/3;
 
                     if (X > left && X < right && Y > top && Y < bottom) {
-                        icon = i;
+                        icon = i+1;
                         goToMenu("puzzle");
                     }
                 }
+
+                if (X < c480(100) && Y > h()-c480(100)) goToMenu("start");
             }
         } else if (menu.equals("puzzle")) {
             if (action == MotionEvent.ACTION_DOWN) {
@@ -352,6 +372,10 @@ public class MainActivity extends Activity {
         return h() / (854 / f);
     }
 
+    private void complete(int floor, int icon) {
+        editor.putBoolean("completed_"+floor+"_"+icon, true);
+        editor.apply();
+    }
     private boolean completed(int floor, int icon) {
         return sharedPref.getBoolean("completed_"+floor+"_"+icon, false);
     }
@@ -366,7 +390,7 @@ public class MainActivity extends Activity {
         if (s.equals("levels")) {
             floor = 0;
             outer: for (int i = 1; i <= 3; i++) {
-                for (int j = 1; j <= 9; j++) {
+                for (int j = 0; j <= 9; j++) {
                     if (!completed(i, j)) {
                         floor = i;
                         break outer;
@@ -375,25 +399,39 @@ public class MainActivity extends Activity {
             }
         } else if (s.equals("puzzle")) {
             puzzle = new Puzzle(puzzles[floor-1][icon],0,h()-w(),w(),h());
+        } else if (s.equals("start")) {
+            startAnimation = -1;
         }
 
         menu = s;
     }
 
     private void drawTitleMenu() {
-        if (h()/w() > 1.*theia.getHeight()/theia.getWidth()) //thinner
-            canvas.drawBitmap(theia,w()/2-theia.getWidth()/2,0,null);
+        if (startAnimation >= 0 && frameCount % 5 == 0) startAnimation++;
+        if (startAnimation == title_frames.length) {
+            goToMenu("levels");
+            return;
+        }
+
+        Bitmap bmp;
+        if (startAnimation >= 0) bmp = title_frames[startAnimation];
+        else bmp = theia;
+
+        if (h()/w() > 1.*bmp.getHeight()/bmp.getWidth()) //thinner
+            canvas.drawBitmap(bmp,w()/2-bmp.getWidth()/2,0,null);
         else //wider
-            canvas.drawBitmap(theia,0,h()/2-theia.getHeight()/2,null);
+            canvas.drawBitmap(bmp,0,h()/2-bmp.getHeight()/2,null);
     }
 
     private void drawLevels() {
-        if (floor == 1) {
+        if (floor < 4 /* floor == 1 */) {
             float top = h()/2 - table.getHeight()/2;
             canvas.drawBitmap(table,0,top,null);
 
             for (int i = 0; i < 9; i++) {
-                canvas.drawBitmap(icons_1[i],(i%3)*w()/3,h()/2-w()*2/3+(i/3)*w()/3,null);
+                float l = (i%3)*w()/3, t = h()/2-w()*2/3+(i/3)*w()/3;
+                canvas.drawBitmap(icons_1[i],l,t,null);
+                if (completed(floor,i+1)) canvas.drawBitmap(check,l,t,null);
             }
         }
     }
@@ -405,5 +443,33 @@ public class MainActivity extends Activity {
         canvas.drawBitmap(reset,w()-c480(100),0,null);
 
         puzzle.drawGrid();
+
+        float w = Math.min(c480(280), puzzle.getRectF().top);
+        puzzle.drawIcon(w()/2-w*.4f,w*.1f,w()/2+w*.4f,w*.9f);
+    }
+
+    private void checkPuzzle() {
+        if (puzzle.complete()) {
+            complete(floor,icon);
+
+            if (icon == 0) {
+                floor += 1;
+                goToMenu("levels");
+            } else {
+                boolean all = true;
+                for (int i = 1; i <= 9; i++) {
+                    if (!completed(floor, i)) {
+                        all = false;
+                        break;
+                    }
+                }
+                if (all) {
+                    icon = 0;
+                    goToMenu("puzzle");
+                } else {
+                    goToMenu("levels");
+                }
+            }
+        }
     }
 }

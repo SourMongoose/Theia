@@ -69,7 +69,18 @@ class Puzzle {
         }
     }
 
-    public void drawIcon(float left, float top, float right, float bottom) {
+    public void drawIcon(float l, float t, float r, float b) {
         Canvas c = MainActivity.canvas;
+        Bitmap on = MainActivity.on, off = MainActivity.off;
+
+        float boxW = (r - l) / w;
+        for (int i = 0; i < w; i++) {
+            for (int j = 0; j < w; j++) {
+                if (target[i][j])
+                    c.drawBitmap(on,null,new RectF(l+j*boxW,t+i*boxW,l+(j+1)*boxW,t+(i+1)*boxW),null);
+                else
+                    c.drawBitmap(off,null,new RectF(l+j*boxW,t+i*boxW,l+(j+1)*boxW,t+(i+1)*boxW),null);
+            }
+        }
     }
 }
